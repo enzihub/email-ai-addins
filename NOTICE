@@ -1,0 +1,7 @@
+Third-party notices
+===================
+
+outlook-ai-assistant/ started from Microsoft's Office Add-in TaskPane
+template (https://github.com/OfficeDev/Office-Addin-TaskPane), which is also
+MIT licensed: Copyright (c) Microsoft Corporation. Files that carry the
+Microsoft copyright header keep it.

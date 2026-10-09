@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mock mail host · Email AI add-ins preview</title>
+<!--
+  MOCK HOST. This page imitates the layout of a webmail client so the real
+  add-in panels have somewhere to live during local preview and screenshots.
+  It is not Gmail or Outlook, uses no Google or Microsoft assets, and every
+  email in it is invented (see ../demo-data.js).
+  ?host=gmail       Email Buddy (real Apps Script code via apps-script-shim.js)
+  ?host=outlook-ai  outlook-ai-assistant task pane (real webpack build)
+  ?host=summarizer  outlook-summarizer task pane (real Next.js build)
+-->
+<style>
+@font-face { font-family: "Inter"; src: url("/hosts/fonts/Inter-latin.woff2") format("woff2"); font-weight: 100 900; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body { font-family: "Inter", system-ui, sans-serif; font-size: 14px; color: #1f2328; -webkit-font-smoothing: antialiased; overflow: hidden; }
+button { font: inherit; }
+
+/* ---------------- shared ---------------- */
+.app { display: grid; height: 100vh; }
+.avatar { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-weight: 600; font-size: 13px; flex: none; }
+.mock-badge { position: fixed; left: 14px; bottom: 12px; z-index: 50; font-size: 11px; letter-spacing: .02em; color: #57606a; background: rgba(255,255,255,.92); border: 1px solid #d0d7de; border-radius: 999px; padding: 4px 10px; }
+.body-text { white-space: pre-wrap; line-height: 1.65; font-size: 14.5px; color: #24292f; max-width: 680px; }
+
+/* ================= GMAIL-STYLE HOST ================= */
+body.g { background: #f6f8fc; }
+.g .app { grid-template-columns: 232px 1fr 360px; grid-template-rows: 64px 1fr; }
+.g .topbar { grid-column: 1 / 4; display: flex; align-items: center; gap: 18px; padding: 0 20px; }
+.g .brand { display: flex; align-items: center; gap: 10px; width: 212px; font-weight: 600; font-size: 19px; color: #3c4043; }
+.g .brand .mark { width: 30px; height: 30px; border-radius: 9px; background: linear-gradient(135deg,#7c5cff,#2fb5ff); display: grid; place-items: center; }
+.g .search { flex: 1; max-width: 720px; height: 46px; border-radius: 24px; background: #e9eef6; display: flex; align-items: center; gap: 12px; padding: 0 18px; color: #5f6368; }
+.g .nav { padding: 6px 12px; }
+.g .compose { display: inline-flex; align-items: center; gap: 12px; background: #c2e7ff; color: #001d35; border: 0; border-radius: 16px; padding: 17px 24px; font-weight: 600; margin: 4px 0 14px; }
+.g .nav a { display: flex; justify-content: space-between; padding: 7px 16px; border-radius: 0 16px 16px 0; color: #202124; text-decoration: none; margin-left: -12px; padding-left: 28px; }
+.g .nav a.on { background: #d3e3fd; font-weight: 600; }
+.g .nav small { font-size: 12px; color: #444; }
+.g .main { background: #fff; border-radius: 16px; margin: 0 12px 14px 0; overflow: hidden; display: flex; flex-direction: column; }
+.g .toolbar { height: 48px; display: flex; align-items: center; gap: 18px; padding: 0 18px; color: #5f6368; border-bottom: 1px solid #f1f3f4; }
+.g .thread { padding: 18px 28px 40px 72px; overflow: auto; }
+.g .thread h1 { font-size: 22px; font-weight: 500; color: #1f1f1f; margin: 0 0 18px -44px; display: flex; align-items: center; gap: 12px; }
+.g .label { font-size: 12px; background: #ddd; border-radius: 4px; padding: 1px 6px; color: #444; font-weight: 500; }
+.g .msg { border-bottom: 1px solid #eceff1; padding: 14px 0; }
+.g .msg-head { display: flex; gap: 12px; align-items: center; margin-left: -46px; }
+.g .msg-head .who b { font-weight: 600; }
+.g .msg-head .who span { color: #5f6368; font-size: 12.5px; }
+.g .msg-head .when { margin-left: auto; color: #5f6368; font-size: 12.5px; }
+.g .msg.collapsed .body-text { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; color: #5f6368; margin-top: 2px; }
+.g .msg .body-text { margin-top: 12px; }
+.g .side { background: #fff; border-radius: 16px; margin: 0 14px 14px 0; display: flex; flex-direction: column; overflow: hidden; position: relative; box-shadow: 0 1px 2px rgba(60,64,67,.15); }
+.g .side-top { display: flex; align-items: center; gap: 10px; padding: 14px 16px 10px; border-bottom: 1px solid #eceff1; font-weight: 600; color: #3c4043; font-size: 13px; }
+.g .side-top .addon-ico { width: 22px; height: 22px; border-radius: 6px; background: #4285F4; display: grid; place-items: center; }
+#progress { height: 3px; background: transparent; overflow: hidden; position: relative; }
+#progress.on::after { content: ""; position: absolute; inset: 0; width: 40%; background: #1a73e8; animation: slide 1s linear infinite; }
+@keyframes slide { from { transform: translateX(-100%); } to { transform: translateX(260%); } }
+
+/* Card renderer (approximation of the add-on card look) */
+#card { flex: 1; overflow: auto; padding-bottom: 24px; }
+.card-header { display: flex; align-items: flex-start; gap: 6px; padding: 16px 16px 8px; }
+.card-header .title { font-size: 16px; font-weight: 600; color: #202124; line-height: 1.35; }
+.card-header .subtitle { font-size: 12px; color: #5f6368; margin-top: 3px; }
+.card-header .back { border: 0; background: none; color: #5f6368; padding: 2px; margin: 0 2px 0 -4px; cursor: pointer; border-radius: 50%; }
+.card-header .err-dot { margin-left: auto; width: 20px; height: 20px; border-radius: 50%; background: #d93025; color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 12px; }
+.card-section { padding: 6px 16px 10px; border-bottom: 1px solid #f1f3f4; }
+.card-section:last-child { border-bottom: 0; }
+.section-header { font-size: 12.5px; font-weight: 600; color: #5f6368; letter-spacing: .01em; margin: 8px 0 6px; }
+.w-text { font-size: 13.5px; line-height: 1.55; color: #3c4043; margin: 8px 0; }
+.w-text.chat-you { background: #e8f0fe; border-radius: 12px 12px 4px 12px; padding: 8px 12px; margin-left: 28px; }
+.w-text.chat-ai { background: #f1f3f4; border-radius: 12px 12px 12px 4px; padding: 8px 12px; margin-right: 18px; }
+.w-kv { margin: 10px 0; }
+.kv-top { font-size: 11.5px; color: #5f6368; }
+.kv-content { font-size: 13.5px; color: #202124; margin-top: 1px; line-height: 1.4; }
+.w-buttons { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 4px; }
+.btn { border-radius: 18px; padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; }
+.btn.text { background: #fff; border: 1px solid #dadce0; color: #1a73e8; }
+.btn.filled { background: #1a73e8; border: 1px solid #1a73e8; color: #fff; }
+.btn:disabled { opacity: .55; cursor: default; }
+.w-input { position: relative; margin: 16px 0 6px; }
+.w-input input, .w-input textarea { width: 100%; border: 1px solid #80868b; border-radius: 6px; padding: 14px 12px 10px; font: inherit; font-size: 13.5px; line-height: 1.5; color: #202124; resize: vertical; background: #fff; }
+.w-input label { position: absolute; left: 9px; top: -8px; background: #fff; padding: 0 4px; font-size: 11.5px; color: #5f6368; }
+.w-input .hint { font-size: 11.5px; color: #5f6368; margin: 4px 2px 0; }
+#toast { position: absolute; left: 16px; right: 16px; bottom: 16px; background: #323232; color: #fff; padding: 12px 14px; border-radius: 6px; font-size: 13px; opacity: 0; transform: translateY(8px); transition: .25s; pointer-events: none; }
+#toast.show { opacity: 1; transform: none; }
+
+/* ================= OUTLOOK-STYLE HOST ================= */
+body.o { background: #f0f0f0; }
+.o .app { grid-template-columns: 48px 280px 1fr 380px; grid-template-rows: 48px 44px 1fr; }
+.o .topbar { grid-column: 1 / 5; background: #0f6cbd; color: #fff; display: flex; align-items: center; gap: 16px; padding: 0 14px; }
+.o .topbar .brand { font-weight: 600; font-size: 15px; display: flex; align-items: center; gap: 10px; width: 300px; }
+.o .topbar .brand .mark { width: 22px; height: 22px; border-radius: 5px; background: rgba(255,255,255,.22); display: grid; place-items: center; }
+.o .topbar .search { flex: 1; max-width: 560px; height: 32px; border-radius: 4px; background: rgba(255,255,255,.92); color: #616161; display: flex; align-items: center; padding: 0 12px; gap: 10px; font-size: 13px; }
+.o .ribbon { grid-column: 1 / 5; background: #fff; border-bottom: 1px solid #e0e0e0; display: flex; align-items: center; gap: 4px; padding: 0 10px; font-size: 13px; color: #242424; }
+.o .ribbon .rb { padding: 6px 10px; border-radius: 4px; display: flex; align-items: center; gap: 6px; }
+.o .ribbon .sep { width: 1px; height: 22px; background: #e0e0e0; margin: 0 6px; }
+.o .ribbon .rb.addin { background: #ebf3fc; color: #0f6cbd; font-weight: 600; outline: 1px solid #b4d6fa; }
+.o .rail { background: #fafafa; border-right: 1px solid #e6e6e6; display: flex; flex-direction: column; align-items: center; gap: 18px; padding-top: 14px; color: #616161; }
+.o .rail .on { color: #0f6cbd; }
+.o .list { background: #fff; border-right: 1px solid #e6e6e6; overflow: hidden; }
+.o .list h2 { font-size: 15px; font-weight: 600; padding: 14px 16px 10px; display: flex; justify-content: space-between; }
+.o .list h2 small { font-weight: 500; color: #0f6cbd; font-size: 12.5px; }
+.o .row { padding: 10px 16px 10px 14px; border-left: 3px solid transparent; border-bottom: 1px solid #f3f3f3; }
+.o .row.sel { background: #ebf3fc; border-left-color: #0f6cbd; }
+.o .row .f { display: flex; justify-content: space-between; font-size: 13.5px; }
+.o .row.unread .f b, .o .row.unread .s { font-weight: 600; }
+.o .row .f b { font-weight: 500; }
+.o .row .f span { font-size: 12px; color: #616161; }
+.o .row.unread .f span { color: #0f6cbd; font-weight: 600; }
+.o .row .s { font-size: 13px; color: #242424; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+.o .row .p { font-size: 12.5px; color: #616161; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+.o .reading { background: #fff; margin: 10px 0 10px 10px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.08); overflow: auto; padding: 22px 30px 40px; }
+.o .reading h1 { font-size: 20px; font-weight: 600; color: #242424; margin-bottom: 18px; line-height: 1.35; }
+.o .sender { display: flex; gap: 12px; align-items: center; margin-bottom: 4px; }
+.o .sender b { font-weight: 600; }
+.o .sender .addr { color: #616161; font-size: 12.5px; }
+.o .sender .when { margin-left: auto; color: #616161; font-size: 12.5px; }
+.o .recips { color: #616161; font-size: 12.5px; margin: 0 0 20px 46px; }
+.o .pane { background: #fff; margin: 10px 10px 10px 10px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.1); display: flex; flex-direction: column; overflow: hidden; }
+.o .pane-top { height: 40px; display: flex; align-items: center; gap: 8px; padding: 0 12px; border-bottom: 1px solid #ebebeb; font-size: 13px; font-weight: 600; color: #242424; }
+.o .pane-top .x { margin-left: auto; color: #616161; font-weight: 400; }
+.o .pane iframe { flex: 1; border: 0; width: 100%; background: #fff; }
+.o .compose { position: fixed; right: 400px; bottom: 0; width: min(520px, calc(100vw - 760px)); background: #fff; border-radius: 8px 8px 0 0; box-shadow: 0 -2px 18px rgba(0,0,0,.18); transform: translateY(105%); transition: transform .35s cubic-bezier(.2,.7,.2,1); z-index: 40; }
+.o .compose.open { transform: none; }
+.o .compose .ch { background: #0f6cbd; color: #fff; padding: 9px 14px; border-radius: 8px 8px 0 0; font-size: 13px; font-weight: 600; }
+.o .compose .cf { padding: 6px 14px; border-bottom: 1px solid #eee; font-size: 13px; color: #616161; }
+.o .compose .cb { padding: 12px 14px 16px; font-size: 13.5px; line-height: 1.6; max-height: 260px; overflow: auto; }
+.o .compose .cb .quote { color: #8a8a8a; border-left: 2px solid #ddd; padding-left: 8px; margin-top: 10px; font-size: 12.5px; }
+.o .compose .send { margin: 0 14px 14px; background: #0f6cbd; color: #fff; border: 0; border-radius: 4px; padding: 7px 18px; font-weight: 600; }
+.narrow .g .app { grid-template-columns: 1fr 360px; }
+.narrow .g .topbar { grid-column: 1 / -1; }
+.narrow .g .nav, .narrow .g .brand { display: none; }
+.narrow .g .main { margin-left: 14px; }
+.narrow .o .app { grid-template-columns: 1fr 380px; }
+.narrow .o .topbar, .narrow .o .ribbon { grid-column: 1 / -1; }
+.narrow .o .compose { width: calc(100vw - 412px); right: 396px; }
+.narrow .o .compose .cb { max-height: 420px; font-size: 13px; }
+.o .compose .send { display: block; }
+.narrow .o .rail, .narrow .o .list { display: none; }
+.narrow .o .topbar .brand { width: auto; }
+svg.i { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+</style>
+<script src="/preview/demo-data.js"></script>
+</head>
+<body>
+<div id="root"></div>
+<div class="mock-badge">Mock mail host for local preview · invented emails · the side panel is the real add-in</div>
+<script>
+(function () {
+  var D = window.DEMO;
+  var qs = new URLSearchParams(location.search);
+  var host = qs.get("host") || "gmail";
+  // ?clean hides the preview badge for README captures; the README states the frame is a mock.
+  if (qs.has("clean")) document.querySelector(".mock-badge").remove();
+  // ?narrow hides the folder/list columns so a small demo GIF stays readable.
+  if (qs.has("narrow")) document.documentElement.classList.add("narrow");
+  var ICON = {
+    search: '<svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
+    mail: '<svg class="i" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>',
+    cal: '<svg class="i" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
+    ppl: '<svg class="i" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><circle cx="17" cy="9" r="2.5"/><path d="M17.5 14.5c2 .4 3.4 1.9 4 4.5"/></svg>',
+    reply: '<svg class="i" viewBox="0 0 24 24"><path d="M10 8 5 12l5 4"/><path d="M5 12h9a5 5 0 0 1 5 5v1"/></svg>',
+    trash: '<svg class="i" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>',
+    archive: '<svg class="i" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="5" rx="1"/><path d="M5 9v10h14V9M10 13h4"/></svg>',
+    spark: '<svg class="i" viewBox="0 0 24 24" style="stroke:#fff"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6"/></svg>',
+    pen: '<svg class="i" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>',
+    bot: '<svg class="i" viewBox="0 0 24 24" style="stroke:#fff;width:14px;height:14px"><rect x="5" y="8" width="14" height="11" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01"/></svg>'
+  };
+  var COLORS = ["#7c5cff", "#e8710a", "#188038", "#d93025", "#1a73e8", "#9334e6"];
+  function initials(n) { return n.split(/\s+/).map(function (w) { return w[0]; }).slice(0, 2).join(""); }
+  function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;"); }
+
+  if (host === "gmail") {
+    document.body.className = "g";
+    var t = D.thread;
+    var msgs = t.messages.map(function (m, i) {
+      var name = m.from.replace(/\s*<.*/, ""), addr = (m.from.match(/<(.*)>/) || [, ""])[1];
+      var last = i === t.messages.length - 1;
+      var d = new Date(m.date);
+      var when = d.toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" }) + ", " +
+        d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
+      return '<div class="msg' + (last ? "" : " collapsed") + '"><div class="msg-head"><div class="avatar" style="background:' + COLORS[i % 6] + '">' + initials(name) +
+        '</div><div class="who"><b>' + esc(name) + '</b> <span>&lt;' + esc(addr) + '&gt;</span></div><div class="when">' + when + '</div></div><div class="body-text">' + esc(m.body) + "</div></div>";
+    }).join("");
+    document.getElementById("root").innerHTML =
+      '<div class="app">' +
+      '<header class="topbar"><div class="brand"><span class="mark">' + ICON.mail.replace('class="i"', 'class="i" style="stroke:#fff"') + '</span>Fernway Mail</div>' +
+      '<div class="search">' + ICON.search + 'Search mail</div></header>' +
+      '<nav class="nav"><button class="compose">' + ICON.pen + 'Compose</button>' +
+      '<a class="on" href="#">Inbox <small>12</small></a><a href="#">Starred</a><a href="#">Snoozed</a><a href="#">Sent</a><a href="#">Drafts <small>2</small></a><a href="#">Suppliers</a><a href="#">Catalogue</a></nav>' +
+      '<main class="main"><div class="toolbar">' + ICON.archive + ICON.trash + ICON.mail + '</div><div class="thread"><h1>' + esc(t.subject) + ' <span class="label">Catalogue</span></h1>' + msgs + "</div></main>" +
+      '<aside class="side"><div class="side-top"><span class="addon-ico">' + ICON.bot + '</span>Email AI Assistant</div><div id="progress"></div><div id="card"></div><div id="toast"></div></aside>' +
+      "</div>";
+    var s1 = document.createElement("script");
+    s1.src = "/preview/apps-script-shim.js";
+    s1.onload = function () {
+      var s2 = document.createElement("script");
+      s2.src = "/gmail/GetContextualAddOn.gs";
+      s2.onload = function () { if (!/keep/.test(location.search)) GasPreview.reset(); GasPreview.start(); window.__ready = true; };
+      document.body.appendChild(s2);
+    };
+    document.body.appendChild(s1);
+    return;
+  }
+
+  // ---------- Outlook-style host ----------
+  document.body.className = "o";
+  var v = D.venue;
+  var src = host === "summarizer" ? "/summarizer/" : "/outlook-ai/taskpane.html";
+  var paneName = host === "summarizer" ? "Email Summarizer" : "AI Email Assistant";
+  var rows = D.inbox.map(function (m) {
+    return '<div class="row' + (m.id === "m-venue" ? " sel" : "") + (m.unread ? " unread" : "") + '"><div class="f"><b>' + esc(m.from) + "</b><span>" + m.time + '</span></div><div class="s">' + esc(m.subject) + '</div><div class="p">' + esc(m.snippet) + "</div></div>";
+  }).join("");
+  document.getElementById("root").innerHTML =
+    '<div class="app">' +
+    '<header class="topbar"><div class="brand"><span class="mark">' + ICON.mail.replace('class="i"', 'class="i" style="stroke:#fff;width:14px;height:14px"') + '</span>Fernway Mail</div><div class="search">' + ICON.search + "Search</div></header>" +
+    '<div class="ribbon"><span class="rb">' + ICON.reply + 'Reply</span><span class="rb">Reply all</span><span class="rb">Forward</span><span class="sep"></span><span class="rb">' + ICON.archive + 'Archive</span><span class="rb">' + ICON.trash + 'Delete</span><span class="sep"></span><span class="rb addin">' + (host === "summarizer" ? "Summarize Email" : "AI Tools") + "</span></div>" +
+    '<nav class="rail"><span class="on">' + ICON.mail + "</span>" + ICON.cal + ICON.ppl + "</nav>" +
+    '<section class="list"><h2>Inbox <small>Focused</small></h2>' + rows + "</section>" +
+    '<main class="reading"><h1>' + esc(v.subject) + '</h1><div class="sender"><div class="avatar" style="background:#e8710a">MK</div><div><b>' + esc(v.from.displayName) + '</b> <span class="addr">&lt;' + esc(v.from.emailAddress) + '&gt;</span></div><div class="when">' + v.date + '</div></div>' +
+    '<div class="recips">To: ' + esc(v.to[0].displayName) + " · Cc: " + esc(v.cc[0].displayName) + '</div><div class="body-text">' + esc(v.body) + "</div></main>" +
+    '<aside class="pane"><div class="pane-top">' + paneName + '<span class="x">✕</span></div><iframe id="addin" title="' + paneName + '" src="' + src + '"></iframe></aside>' +
+    "</div>" +
+    '<div class="compose" id="compose"><div class="ch">RE: ' + esc(v.subject) + '</div><div class="cf">To: ' + esc(v.from.displayName) + "; " + esc(v.cc[0].displayName) + '</div><div class="cb" id="composeBody"></div><button class="send">Send</button></div>';
+  window.addEventListener("message", function (e) {
+    if (e.data && e.data.type === "office-preview:replyAll") {
+      document.getElementById("composeBody").innerHTML = e.data.htmlBody + '<div class="quote">On ' + v.date + ", " + esc(v.from.displayName) + " wrote: Hi Sam, Thanks for sending the headcount…</div>";
+      document.getElementById("compose").classList.add("open");
+    }
+  });
+  document.getElementById("addin").addEventListener("load", function () { window.__ready = true; });
+})();
+</script>
+</body>
+</html>

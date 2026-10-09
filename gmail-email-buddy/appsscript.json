@@ -1,0 +1,34 @@
+{
+  "timeZone": "America/New_York",
+  "dependencies": {
+    "enabledAdvancedServices": []
+  },
+  "exceptionLogging": "STACKDRIVER",
+  "runtimeVersion": "V8",
+  "oauthScopes": [
+    "https://mail.google.com/",
+    "https://www.googleapis.com/auth/gmail.addons.current.message.action",
+    "https://www.googleapis.com/auth/gmail.addons.current.message.metadata",
+    "https://www.googleapis.com/auth/gmail.addons.current.message.readonly",
+    "https://www.googleapis.com/auth/gmail.modify",
+    "https://www.googleapis.com/auth/gmail.readonly"
+  ],
+  "gmail": {
+    "name": "Email AI Assistant",
+    "logoUrl": "https://www.gstatic.com/images/icons/material/system/1x/smart_toy_black_24dp.png",
+    "primaryColor": "#4285F4",
+    "secondaryColor": "#4285F4",
+    "contextualTriggers": [
+      {
+        "unconditional": {},
+        "onTriggerFunction": "getContextualAddOn"
+      }
+    ],
+    "universalActions": [
+      {
+        "text": "Settings (AI Assistant)",
+        "runFunction": "showSettings"
+      }
+    ]
+  }
+}

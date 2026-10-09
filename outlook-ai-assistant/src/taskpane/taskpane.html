@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Email AI Assistant</title>
+
+    <script type="text/javascript" src="https://appsforoffice.microsoft.com/lib/1.1/hosted/office.js"></script>
+
+    <style>
+        body {
+            font-family: 'Segoe UI', 'Segoe UI Web (West European)', 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', sans-serif;
+            font-size: 14px;
+            margin: 0;
+            padding: 0;
+            /* Remove padding for full-width sections */
+            box-sizing: border-box;
+            background-color: #f3f2f1;
+            /* Office-like background */
+            color: #323130;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            /* Full viewport height */
+        }
+
+        .header {
+            background-color: #0078d4;
+            /* Office blue */
+            color: white;
+            padding: 15px 20px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .content-area {
+            padding: 20px;
+            flex-grow: 1;
+            overflow-y: auto;
+            background-color: #ffffff;
+        }
+
+        .section {
+            margin-bottom: 20px;
+        }
+
+        .section-header {
+            font-size: 16px;
+            font-weight: 600;
+            color: #323130;
+            margin-top: 0;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #edebe9;
+            padding-bottom: 5px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+
+        input[type="text"],
+        textarea {
+            width: calc(100% - 22px);
+            /* Account for padding and border */
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #c8c6c4;
+            border-radius: 3px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+            font-family: inherit;
+        }
+
+        button {
+            background-color: #0078d4;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 14px;
+            margin-top: 5px;
+            margin-right: 8px;
+            margin-bottom: 5px;
+            cursor: pointer;
+            border-radius: 3px;
+            transition: background-color 0.2s ease;
+            min-width: 100px;
+            /* Ensure buttons have some minimum width */
+        }
+
+        button:hover {
+            background-color: #005a9e;
+        }
+
+        button:disabled {
+            background-color: #c8c6c4;
+            /* Disabled color */
+            cursor: not-allowed;
+        }
+
+        button.secondary {
+            background-color: #f3f2f1;
+            color: #323130;
+            border: 1px solid #c8c6c4;
+        }
+
+        button.secondary:hover {
+            background-color: #edebe9;
+        }
+
+        button.secondary:disabled {
+            background-color: #e1dfdd;
+            border-color: #c8c6c4;
+            color: #a19f9d;
+        }
+
+
+        .button-set {
+            margin-top: 10px;
+            margin-bottom: 15px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .message-bar {
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 3px;
+            border: 1px solid transparent;
+            display: none;
+            /* Hidden by default */
+        }
+
+        .error-message {
+            color: #a80000;
+            /* Darker red for text */
+            background-color: #fde7e9;
+            /* Light red background */
+            border-color: #e85065;
+            /* Reddish border */
+        }
+
+        .info-message {
+            color: #004085;
+            /* Darker blue for text */
+            background-color: #cfe2f3;
+            /* Light blue background */
+            border-color: #5091e8;
+            /* Bluish border */
+        }
+
+        .key-value {
+            margin-bottom: 10px;
+        }
+
+        .key-value .label {
+            font-weight: 600;
+            color: #605e5c;
+        }
+
+        .key-value .value {
+            margin-left: 5px;
+            overflow-wrap: anywhere;
+            /* Prevent long unbroken strings from overflowing */
+        }
+
+        .view {
+            display: none;
+            /* Hidden by default */
+        }
+
+        .view.active {
+            display: block;
+        }
+
+        .loading-indicator {
+            text-align: center;
+            padding: 20px;
+            font-style: italic;
+            color: #605e5c;
+            display: none;
+            /* Hidden by default */
+        }
+
+        .loading-indicator.active {
+            display: block;
+        }
+
+        .footer-actions {
+            margin-top: auto;
+            /* Pushes to the bottom if content is short */
+            padding: 15px 20px;
+            background-color: #f3f2f1;
+            /* Match body background */
+            border-top: 1px solid #e1dfdd;
+            /* Separator line */
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        Email AI Assistant
+    </div>
+
+    <div id="loadingIndicator" class="loading-indicator">Processing... Please wait.</div>
+    <div id="messageBar" class="message-bar"></div>
+
+    <div class="content-area">
+        <div id="mainView" class="view active">
+            <div class="section">
+                <h2 class="section-header">Email Tools</h2>
+                <div id="emailNotSelectedMessage">
+                    <p>Open an email to enable AI-powered summaries and replies. You can configure your API key using
+                        the settings button.</p>
+                </div>
+                <div id="emailToolsActions" style="display:none;">
+                    <p>Generate AI-powered summaries and replies for the selected email.</p>
+                    <div class="button-set">
+                        <button id="generateSummaryBtn">Generate Summary</button>
+                        <button id="createReplyBtn">Create Reply</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="summaryView" class="view">
+            <div class="section">
+                <h2 class="section-header">Email Summary</h2>
+                <div class="key-value"><span class="label">From:</span> <span id="summaryFrom" class="value"></span>
+                </div>
+                <div class="key-value"><span class="label">Subject:</span> <span id="summarySubject"
+                        class="value"></span></div>
+                <p><b>Summary:</b></p>
+                <div id="summaryText"
+                    style="white-space: pre-wrap; background-color: #f9f9f9; border: 1px solid #e1dfdd; padding: 10px; border-radius: 3px;">
+                </div>
+                <div class="button-set">
+                    <button id="createReplyFromSummaryBtn">Create Reply From This</button>
+                    <button id="backToMainSummaryBtn" class="secondary">Back</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="replyView" class="view">
+            <div class="section">
+                <h2 class="section-header">Generated Reply Suggestion</h2>
+                <label for="replyContentTextarea"><b>Suggested Reply (edit below):</b></label>
+                <textarea id="replyContentTextarea"></textarea>
+                <div class="button-set">
+                    <button id="createDraftBtn">Create Draft with This Reply</button>
+                    <button id="sendReplyBtn">Open Reply Form with This</button>
+                    <button id="backToMainReplyBtn" class="secondary">Back</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="settingsView" class="view">
+            <div class="section">
+                <h2 class="section-header">Settings</h2>
+                <p>Configure your OpenAI API key. You can obtain your API key from the OpenAI platform.</p>
+                <div class="key-value">
+                    <span class="label">Current API Key Status:</span> <span id="apiKeyStatus" class="value">Not
+                        Set</span>
+                </div>
+                <label for="apiKeyInput">Enter or Update OpenAI API Key:</label>
+                <input type="text" id="apiKeyInput" placeholder="Paste your API key here (e.g., sk-...)">
+                <div class="button-set">
+                    <button id="saveApiKeyBtn">Save API Key</button>
+                    <button id="backToMainSettingsBtn" class="secondary">Back</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer-actions">
+        <button id="configureApiKeyBtn" class="secondary">Settings</button>
+    </div>
+
+    <script type="text/javascript" src="taskpane.ts"></script>
+</body>
+
+</html>

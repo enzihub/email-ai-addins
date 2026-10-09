@@ -1,0 +1,15 @@
+{
+  "name": "email-ai-addins-tools",
+  "private": true,
+  "description": "Preview host, screenshot/GIF capture and README art for email-ai-addins",
+  "type": "module",
+  "scripts": {
+    "preview": "node preview/server.js",
+    "capture": "node capture/capture.mjs ../.capture",
+    "gif-frames": "node capture/gif-frames.mjs ../.capture/frames",
+    "art": "node art/render.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.47.0"
+  }
+}
